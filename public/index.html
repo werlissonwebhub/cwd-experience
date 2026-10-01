@@ -120,7 +120,7 @@
 
     <style>
       :root {
-        --bg-color: #111111;
+        --bg-color: #000000;
         --text-main: #ffffff;
       }
 
@@ -188,7 +188,7 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 100vw;
+        width: 100%;
         max-width: 177.77vh; /* 16:9 Aspect Ratio limit */
         height: 100vh;
         max-height: 56.25vw; /* 16:9 Aspect Ratio limit */
@@ -283,7 +283,7 @@
           position: absolute;
           bottom: 18vh;
           left: 0;
-          width: 100vw;
+          width: 100%;
           overflow: hidden;
           pointer-events: none;
           z-index: 30;
@@ -1850,7 +1850,7 @@
       <img
         src="img/cwd-logomarca.png"
         alt="Background CWD"
-        class="absolute inset-0 w-full h-full object-contain pointer-events-none z-0 p-10 opacity-30"
+        class="absolute inset-0 w-full h-full object-contain pointer-events-none z-0 p-2 md:p-10 scale-[1.8] md:scale-100 opacity-30"
       />
 
       <h2
@@ -2019,14 +2019,68 @@
         const notebookAnimation = { frame: 0 };
 
         for (let i = 0; i < frameCount; i++) {
-          const img = new Image();
-          img.src = currentFrame(i);
-          images.push(img);
+          images.push(new Image());
         }
 
-        // Renderiza o 1º frame imediatamente
+        // Carrega o 1º frame imediatamente
+        images[0].src = currentFrame(0);
         images[0].onload = () => {
           context.drawImage(images[0], 0, 0, canvas.width, canvas.height);
+          
+          // Carregamento em lotes para evitar bloqueio da rede e lentidão
+          let loadIndex = 1;
+          function loadNextBatch() {
+            if (loadIndex >= frameCount) return;
+            let limit = Math.min(loadIndex + 5, frameCount);
+            let loadedCount = 0;
+            let batchSize = limit - loadIndex;
+
+            const onImageProcessed = () => {
+              loadedCount++;
+              
+              // Atualiza a tela imediatamente caso o usuário já tenha rolado para um frame que acabou de carregar
+              renderCurrentFrame();
+
+              if (loadedCount === batchSize) {
+                loadIndex = limit;
+                setTimeout(loadNextBatch, 5); // pausa breve para liberar a CPU/rede
+              }
+            };
+
+            for (let i = loadIndex; i < limit; i++) {
+              images[i].onload = onImageProcessed;
+              images[i].onerror = onImageProcessed;
+              images[i].src = currentFrame(i);
+            }
+          }
+          loadNextBatch();
+        };
+
+        // Função responsável por desenhar o frame mais próximo que já terminou de carregar
+        const renderCurrentFrame = () => {
+          let frameIndex = Math.round(Math.min(
+            frameCount - 1,
+            Math.max(0, notebookAnimation.frame),
+          ));
+          
+          // Busca a última imagem que realmente carregou (naturalWidth > 0 confirma o src)
+          while (frameIndex >= 0) {
+            if (images[frameIndex] && images[frameIndex].complete && images[frameIndex].naturalWidth > 0) {
+              break;
+            }
+            frameIndex--;
+          }
+
+          if (frameIndex >= 0) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(
+              images[frameIndex],
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+          }
         };
 
         gsap.registerPlugin(ScrollTrigger);
@@ -2052,22 +2106,7 @@
             snap: "frame",
             ease: "none",
             duration: 1,
-            onUpdate: () => {
-              const frameIndex = Math.min(
-                frameCount - 1,
-                Math.max(0, notebookAnimation.frame),
-              );
-              context.clearRect(0, 0, canvas.width, canvas.height);
-              if (images[frameIndex]) {
-                context.drawImage(
-                  images[frameIndex],
-                  0,
-                  0,
-                  canvas.width,
-                  canvas.height,
-                );
-              }
-            },
+            onUpdate: renderCurrentFrame,
           },
           0,
         );
@@ -2089,15 +2128,27 @@
             if (node.nodeType === Node.TEXT_NODE) {
               const txt = node.textContent;
               const frag = document.createDocumentFragment();
-              for (const ch of txt) {
-                if (/\s/.test(ch)) {
-                  // ALL whitespace (spaces, newlines, tabs) → single space text node
+              
+              // Separa palavras e espaços mantendo os dois
+              const tokens = txt.split(/(\s+)/);
+              
+              for (const token of tokens) {
+                if (!token) continue;
+                if (/^\s+$/.test(token)) {
+                  // É espaço em branco: apenas renderiza como espaço normal
                   frag.appendChild(document.createTextNode(" "));
                 } else {
-                  const s = document.createElement("span");
-                  s.textContent = ch;
-                  s.classList.add("letter");
-                  frag.appendChild(s);
+                  // É uma palavra: agrupa em um container inline-block para não quebrar a palavra no meio
+                  const wordSpan = document.createElement("span");
+                  wordSpan.style.display = "inline-block";
+                  wordSpan.style.whiteSpace = "nowrap";
+                  for (const ch of token) {
+                    const s = document.createElement("span");
+                    s.textContent = ch;
+                    s.classList.add("letter");
+                    wordSpan.appendChild(s);
+                  }
+                  frag.appendChild(wordSpan);
                 }
               }
               node.replaceWith(frag);
@@ -2124,10 +2175,10 @@
                 opacity: 1,
                 y: 0,
                 filter: "blur(0px)",
-                stagger: 0.012,
-                duration: 0.8,
+                stagger: 0.005, // Muito mais rápido para carregar logo
+                duration: 0.5,
                 ease: "power2.out",
-                delay: 0.2,
+                delay: 0, // Sem delay extra
               },
             );
 
@@ -2560,6 +2611,12 @@
           portfolioVideo.setAttribute("webkit-playsinline", "");
           portfolioVideo.playsInline = true;
 
+          portfolioVideo.addEventListener("timeupdate", () => {
+            // Interrompe o vídeo em 14 segundos e transiciona para o portfólio
+            if (portfolioVideo.currentTime >= 14 && !videoEnded) {
+              revealPortfolioScreen();
+            }
+          });
           portfolioVideo.addEventListener("ended", () => {
             revealPortfolioScreen();
           });
@@ -2599,19 +2656,35 @@
             if (currentVideo && !currentVideo.paused) currentVideo.pause();
           }
 
+          // Cálculo do scale base para evitar que os cards fiquem cortados
+          const targetHeight = window.innerWidth < 768 ? 1000 : 850;
+          const baseScale = Math.min(1, window.innerHeight / targetHeight);
+
           // 1. CARDS FADE IN OVER THE CANVAS (0.0 to 0.15)
           if (p <= 0.15) {
             const sub = p / 0.15;
             if (cardsStage) {
               cardsStage.style.display = "flex";
-              cardsStage.style.opacity = sub.toFixed(2);
+              cardsStage.style.opacity = "1";
               cardsStage.style.pointerEvents = "auto";
-              cardsStage.style.transform = `translateY(${(1 - sub) * 50}px) scale(${0.9 + sub * 0.1})`;
+              cardsStage.style.transform = `scale(${baseScale}) translateY(${(1 - sub) * 20}px)`;
             }
-            if (cardsHeading) cardsHeading.style.opacity = sub.toFixed(2);
-            techCards.forEach((c) => {
-              c.style.transform = "none";
-              c.style.opacity = sub.toFixed(2);
+            if (cardsHeading) {
+              cardsHeading.style.opacity = sub.toFixed(2);
+              cardsHeading.style.transform = `translateY(${(1 - sub) * 15}px)`;
+            }
+            const totalCards = techCards.length;
+            techCards.forEach((c, idx) => {
+              const delay = (idx / totalCards) * 0.6; // Stagger delay
+              const duration = 0.4;
+              const cardP = Math.max(0, Math.min(1, (sub - delay) / duration));
+              const easeP = 1 - Math.pow(1 - cardP, 4); // easeOutQuart
+              
+              c.style.opacity = easeP.toFixed(2);
+              const yOffset = (1 - easeP) * 80;
+              const zOffset = (1 - easeP) * -150;
+              const rotX = (1 - easeP) * 25;
+              c.style.transform = `perspective(1000px) translate3d(0, ${yOffset}px, ${zOffset}px) rotateX(${rotX}deg)`;
             });
             if (portfolioSticky)
               portfolioSticky.style.backgroundColor = "transparent";
@@ -2623,11 +2696,14 @@
               cardsStage.style.display = "flex";
               cardsStage.style.opacity = "1";
               cardsStage.style.pointerEvents = "auto";
-              cardsStage.style.transform = "translateY(0px) scale(1)";
+              cardsStage.style.transform = `scale(${baseScale}) translateY(0px)`;
             }
-            if (cardsHeading) cardsHeading.style.opacity = "1";
+            if (cardsHeading) {
+              cardsHeading.style.opacity = "1";
+              cardsHeading.style.transform = "translateY(0px)";
+            }
             techCards.forEach((c) => {
-              c.style.transform = "none";
+              c.style.transform = "perspective(1000px) translate3d(0, 0px, 0px) rotateX(0deg)";
               c.style.opacity = "1";
             });
             if (portfolioSticky)
@@ -2641,7 +2717,7 @@
               cardsStage.style.display = "flex";
               cardsStage.style.opacity = Math.max(0, 1 - sub * 1.5).toFixed(2);
               cardsStage.style.pointerEvents = "none";
-              cardsStage.style.transform = `translateY(${sub * -30}px) scale(${1 - sub * 0.05})`;
+              cardsStage.style.transform = `scale(${baseScale * (1 - sub * 0.05)}) translateY(${sub * -30}px)`;
             }
             if (cardsHeading)
               cardsHeading.style.opacity = Math.max(0, 1 - sub * 2).toString();
@@ -2651,7 +2727,7 @@
               const x = Math.cos(angle) * dist * sub;
               const y = Math.sin(angle) * dist * sub;
               const rot = (idx % 2 === 0 ? 1 : -1) * 20 * sub;
-              c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${1 - sub * 0.3}) rotate(${rot.toFixed(1)}deg)`;
+              c.style.transform = `perspective(1000px) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${sub * 100}px) scale(${1 - sub * 0.3}) rotate(${rot.toFixed(1)}deg)`;
             });
             if (portfolioSticky) {
               portfolioSticky.style.backgroundColor = `rgba(0, 0, 0, ${sub})`;
