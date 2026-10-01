@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap Index
+Sitemap: https://cwd.experiencie.coddingwebdevelopers.com.br/sitemap.xml
