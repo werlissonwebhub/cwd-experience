@@ -1005,17 +1005,75 @@
           </p>
         </div>
 
-        <!-- Mobile Horizontal Carousel / Marquee Ticker (Abaixo da imagem do astronauta) -->
-        <div class="mobile-hero-ticker md:hidden" aria-hidden="true">
-          <div class="ticker-track">
-            <span class="ticker-text">
-              FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp; FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp;
-            </span>
-            <span class="ticker-text">
-              FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp; FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp;
-            </span>
+        <!-- ============================================================================== -->
+        <!-- EFEITO DE PARTÍCULAS DOM GSAP (SEGURO E SEM BUGS) -->
+        <div class="mobile-hero-ticker md:hidden relative flex items-center justify-center h-24 my-6 w-full" id="ticker-trigger" aria-hidden="true" style="perspective: 1000px;">
+          <!-- O Texto Brilhante -->
+          <div id="ticker-real-text" class="text-[#00f0ff] font-bold text-[17px] sm:text-xl tracking-[0.2em] text-center transition-all duration-300 z-10" style="text-shadow: 0 0 12px rgba(0,240,255,0.8);">
+            FUTURISTIC SOLUTIONS<br>COMPANY
           </div>
+          <!-- Container das Partículas (Cubos HTML) -->
+          <div id="ticker-particles" class="absolute inset-0 pointer-events-none z-20"></div>
         </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+        <script>
+        // Usando IIFE para evitar escopo global poluído e rodar o mais rápido possível
+        (function() {
+            function initEffect() {
+                const trigger = document.getElementById("ticker-trigger");
+                const realText = document.getElementById("ticker-real-text");
+                const particlesContainer = document.getElementById("ticker-particles");
+                
+                if(!trigger || !realText || !particlesContainer) return;
+                if(typeof gsap === 'undefined') return;
+
+                const particleCount = 80; 
+                const particles = [];
+                for(let i = 0; i < particleCount; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#00f0ff]';
+                    p.style.boxShadow = '0 0 8px #00f0ff, 0 0 15px #00f0ff';
+                    p.style.top = '50%';
+                    p.style.left = '50%';
+                    p.style.opacity = '0';
+                    particlesContainer.appendChild(p);
+                    particles.push(p);
+                }
+
+                let isExploded = false;
+
+                window.addEventListener('scroll', () => {
+                    // Explode if scrolled down
+                    if (window.scrollY > 30 && !isExploded) {
+                        isExploded = true;
+                        
+                        // Hide text
+                        realText.style.opacity = '0';
+                        realText.style.transform = 'scale(0.95)';
+                        
+                        // Explode particles
+                        gsap.fromTo(particles, 
+                            { x: () => gsap.utils.random(-130, 130), y: () => gsap.utils.random(-25, 25), z: 0, opacity: 1, scale: () => gsap.utils.random(0.5, 1.2), rotationX: 0, rotationY: 0 },
+                            { duration: 1, x: () => gsap.utils.random(-250, 250), y: () => gsap.utils.random(-150, 150), z: () => gsap.utils.random(100, 300), rotationX: () => gsap.utils.random(-720, 720), rotationY: () => gsap.utils.random(-720, 720), opacity: 0, scale: 0, ease: "power3.out", stagger: 0.002 }
+                        );
+                    } else if (window.scrollY < 10 && isExploded) {
+                        // Reset if back to top
+                        isExploded = false;
+                        realText.style.opacity = '1';
+                        realText.style.transform = 'scale(1)';
+                    }
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener("DOMContentLoaded", initEffect);
+            } else {
+                initEffect();
+            }
+        })();
+        </script>
+        <!-- ============================================================================== -->
       </section>
 
       <!-- Step 2 -->
