@@ -1006,9 +1006,9 @@
         </div>
 
         <!-- Mobile Horizontal Carousel / Marquee Ticker (Abaixo da imagem do astronauta) -->
-        <div class="mobile-hero-ticker md:hidden relative" aria-hidden="true" id="ticker-trigger" style="perspective: 1000px;">
+        <div class="mobile-hero-ticker md:hidden" aria-hidden="true" id="ticker-trigger" style="perspective: 1000px;">
           <!-- O Carrossel Marquee Original (Intacto) -->
-          <div class="ticker-track transition-all duration-300 z-10" id="ticker-real-text">
+          <div class="ticker-track transition-opacity duration-300 z-10" id="ticker-real-text">
             <span class="ticker-text">
               FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp; FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp;
             </span>
@@ -1052,9 +1052,8 @@
                     if (window.scrollY > 30 && !isExploded) {
                         isExploded = true;
                         
-                        // Hide the moving carousel
+                        // Hide the moving carousel without breaking its transform keyframes!
                         realText.style.opacity = '0';
-                        realText.style.transform = 'scale(0.95)';
                         
                         // Emit 3D particles from the carousel's location
                         gsap.fromTo(particles, 
@@ -1065,7 +1064,6 @@
                         // Reset if scrolled back to top
                         isExploded = false;
                         realText.style.opacity = '1';
-                        realText.style.transform = 'scale(1)';
                     }
                 });
             }
