@@ -1005,12 +1005,16 @@
           </p>
         </div>
 
-        <!-- ============================================================================== -->
-        <!-- EFEITO DE PARTÍCULAS DOM GSAP (SEGURO E SEM BUGS) -->
-        <div class="mobile-hero-ticker md:hidden relative flex items-center justify-center h-24 my-6 w-full" id="ticker-trigger" aria-hidden="true" style="perspective: 1000px;">
-          <!-- O Texto Brilhante -->
-          <div id="ticker-real-text" class="text-[#00f0ff] font-bold text-[17px] sm:text-xl tracking-[0.2em] text-center transition-all duration-300 z-10" style="text-shadow: 0 0 12px rgba(0,240,255,0.8);">
-            FUTURISTIC SOLUTIONS<br>COMPANY
+        <!-- Mobile Horizontal Carousel / Marquee Ticker (Abaixo da imagem do astronauta) -->
+        <div class="mobile-hero-ticker md:hidden relative" aria-hidden="true" id="ticker-trigger" style="perspective: 1000px;">
+          <!-- O Carrossel Marquee Original (Intacto) -->
+          <div class="ticker-track transition-all duration-300 z-10" id="ticker-real-text">
+            <span class="ticker-text">
+              FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp; FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp;
+            </span>
+            <span class="ticker-text">
+              FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp; FUTURISTIC SOLUTIONS COMPANY &nbsp;•&nbsp;
+            </span>
           </div>
           <!-- Container das Partículas (Cubos HTML) -->
           <div id="ticker-particles" class="absolute inset-0 pointer-events-none z-20"></div>
@@ -1048,17 +1052,17 @@
                     if (window.scrollY > 30 && !isExploded) {
                         isExploded = true;
                         
-                        // Hide text
+                        // Hide the moving carousel
                         realText.style.opacity = '0';
                         realText.style.transform = 'scale(0.95)';
                         
-                        // Explode particles
+                        // Emit 3D particles from the carousel's location
                         gsap.fromTo(particles, 
-                            { x: () => gsap.utils.random(-130, 130), y: () => gsap.utils.random(-25, 25), z: 0, opacity: 1, scale: () => gsap.utils.random(0.5, 1.2), rotationX: 0, rotationY: 0 },
+                            { x: () => gsap.utils.random(-150, 150), y: () => gsap.utils.random(-25, 25), z: 0, opacity: 1, scale: () => gsap.utils.random(0.5, 1.2), rotationX: 0, rotationY: 0 },
                             { duration: 1, x: () => gsap.utils.random(-250, 250), y: () => gsap.utils.random(-150, 150), z: () => gsap.utils.random(100, 300), rotationX: () => gsap.utils.random(-720, 720), rotationY: () => gsap.utils.random(-720, 720), opacity: 0, scale: 0, ease: "power3.out", stagger: 0.002 }
                         );
                     } else if (window.scrollY < 10 && isExploded) {
-                        // Reset if back to top
+                        // Reset if scrolled back to top
                         isExploded = false;
                         realText.style.opacity = '1';
                         realText.style.transform = 'scale(1)';
@@ -1073,7 +1077,6 @@
             }
         })();
         </script>
-        <!-- ============================================================================== -->
       </section>
 
       <!-- Step 2 -->
